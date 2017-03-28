@@ -18,8 +18,8 @@ GLOBAL_P=list(P.get_values())
 def test():
     offTestData=pd.read_csv('../../data/JData_Action_201604.csv')
     print len(offTestData)
-    offTestData=offTestData[(offTestData.time>='2016-04-15')&(offTestData.time<'2016-04-16')&(offTestData['sku_id'].isin(P))].ix[:,[0,1,2,4]]
-    print "----testData ---",len(offTestData),"record \n",offTestData.head(5)
+    offTestData=offTestData[(offTestData.time>='2016-04-10')&(offTestData.time<'2016-04-11')&(offTestData['sku_id'].isin(P))].ix[:,[0,1,2,4]]
+    print "----testData ---",len(offTestData),"record \n"
     testFeaturesType_6=offTestData.ix[:,[0,1,3]]
     testFeaturesType_6['sum_type_6']=1
     testFeaturesType_6 = testFeaturesType_6[testFeaturesType_6['type']==6].iloc[:,[0,1,3]].groupby(['user_id','sku_id']).agg('sum').reset_index()
@@ -31,75 +31,36 @@ def test():
       testFeaturesName['sum_type_'+str(index)]=1
       testFeaturesName=testFeaturesName[testFeaturesName['type']==index].iloc[:,[0,1,3]].groupby(['user_id','sku_id']).agg('sum').reset_index()
       testFeatures=pd.merge(testFeatures,testFeaturesName, on=['user_id','sku_id'],how='left')
-    #t3.rename(columns={'date_received':'dates'},inplace=False)
     testFeatures=testFeatures.fillna(int(0))
     testFeatures=testFeatures.iloc[:,[0,1,3,4,5,7,2,6]]  
     testFeatures['col_sum']=testFeatures.ix[:,[2,3,4,5,6,7]].apply(lambda x: x.sum(),axis=1)
-    testFeatures=testFeatures[(testFeatures.sum_type_4<1)&(testFeatures.sum_type_2>=1)&(testFeatures.sum_type_2+testFeatures.sum_type_3>0)]
+    testFeatures=testFeatures[(testFeatures.sum_type_4>=0)&(testFeatures.sum_type_2>=1)&(testFeatures.sum_type_2-testFeatures.sum_type_3>0)]
     testFeatures= testFeatures[testFeatures.sku_id.isin(P)].groupby('user_id').apply(lambda t: t[t.col_sum==t.col_sum.max()])
-    #testFeatures=testFeatures.ix[:,[0,1]]
-    
 
-    print len(testFeatures)
-    resultL=testFeatures.iloc[:,0]
-
-    print type(resultL)
-    resultL=list(resultL.get_values())
-    resultR=testFeatures.iloc[:,1]
-    resultR=list(resultR.get_values())
-    resultLL=[]
-    resultRR=[]
-    fsult = open("result.csv","w")
-    strs="user_id,sku_id\n"
-    fsult.write(strs.encode("utf8"))
-
-    for i in range(0,len(resultL)):
-        if resultL[i] in resultLL:
-          continue
-        else:
-          resultLL.append(resultL[i])
-          resultRR.append(resultR[i])
-          strs=str(resultL[i])+"\t"+str(resultR[i])+"\n"
-          fsult.write(strs.encode("utf8"))
-    fsult.close()
-    print "R",len(resultRR)
-    print "L",len(resultLL)
-    getF(resultLL,resultRR)
-
+    testFeatures=testFeatures.groupby('user_id').apply(lambda x: x)
+    predata=testFeatures.ix[:,[0,1]]
+    getF(predata)
+   
 #get the set of P(products)
-def getF(resultL,resultP):
+def getF(predata):
 	testdata=pd.read_csv("../mydatas/windows/testFeatures11-15.csv")
 	realSums=len(testdata)
 	print "realSums=",len(testdata)
-	A1=0.0;
-	A2=0.0;
-	sums=len(resultL)
 
-	uids=list(testdata.iloc[:,0].get_values())
-	pids=list(testdata.iloc[:,1].get_values())
-	print "uids:\t",len(uids)
-	print "pids:\t",len(pids)
-	tempList=[]
-	for i in range(0,len(uids)):
-		k=str(uids[i])+":"+str(pids[i])
-		tempList.append(k)
-	for index in range(0,sums):
-		try:
-			k=resultL[index]+":"+resultP[index]
-			if k in tempList:
-				A2=A2+1
-			if resultL[index] in uids:
-				A1=A1+1
-		except Exception as err:
-			continue
-
-	P1=A1/sums
-	R1=A1/len(list(set(uids))) #4395 user's counts (buy goods)
-	P2=A2/sums
+	A1=float(len(predata[predata['user_id'].isin(testdata.ix[:,0])]))
+	tempData=pd.merge(predata,testdata,on=['user_id','sku_id'],how='left')
+	tempData=tempData.dropna()
+	A2=float(len(tempData))
+	sumsUids=len(predata.ix[:,0])
+	realSumsUids=len(list(set((testdata.ix[:,0]).get_values())))
+	print realSumsUids
+	P1=A1/sumsUids
+	R1=A1/realSumsUids # user's counts (buy goods)
+	P2=A2/sumsUids
 	R2=A2/realSums
 	print "A1=",A1,"\tA2=",A2
 	print "R1=",R1,"\tR2=",R2
-	print P1,R1,P2,R2
+	print "P1=",P1,"\tP2=",P2
 	f11=0
 	f12=0
 	try:
@@ -109,7 +70,7 @@ def getF(resultL,resultP):
 		pass
 
 	score=0.4*f11+0.6*f12
-	print "final----score=",score,"\nf11=",f11,"\tf12=",f12
+	print "f11=",f11,"\tf12=",f12,"\nfinal----score=",score,
 
 if __name__ == '__main__':
 	#for x in range(10,16):
