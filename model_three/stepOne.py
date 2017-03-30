@@ -1,10 +1,10 @@
+#-*- encoding:utf-8 -*-
 import pandas as pd
 import numpy as np
 from datetime import date
 import os
 import sys
 import copy
-import main
 
 # 24187 record the set of P |[sku_id,attr1,attr2,attr3,cate,brand]->>sk_id
 product=pd.read_csv('../../data/JData_Product.csv')
@@ -77,7 +77,7 @@ def getTrainData():
 
         off_train=pd.concat([off_train,off_train1])
         print "trans-data total record is:",len(off_train)
-        '''
+        '''ls
         features_type_6=off_train.iloc[:,[0,1,4]]
         features_type_6['sum_type_6']=1
         features_type_6 = features_type_6[features_type_6['type']==6].iloc[:,[0,1,3]].groupby(['user_id','sku_id']).agg('sum').reset_index()
